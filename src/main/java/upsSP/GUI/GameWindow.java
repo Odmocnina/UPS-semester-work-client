@@ -10,14 +10,34 @@ import java.awt.*;
 import java.awt.event.*;
 import java.io.IOException;
 
+
+/************************************************************
+ * Instance tridy GameWindow predstavuje panel, ktery se zobrzi jako herni spiel
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class GameWindow extends JPanel implements Connection.IListenerInGame {
 
+    /**hodnota tahu hrace**/
     int turnValue = -10;
 
+    /**pole obsahujici mozne tahy**/
     ITurn[] turns = new ITurn[Constants.NUMBER_OF_TURNS + 1];
 
-    static JLabel roundLabel, stavLabel;
+    /**popisek pro zobrazeni aktualniho kola**/
+    static JLabel roundLabel;
+    /**popisek pro zobrazeni stavu hry**/
+    static JLabel stavLabel;
 
+    /****
+     * konstruktor inicializuje herni okno, pridava tlacitka a nastavuje layout
+     *
+     *
+     * @param window Hlavni okno aplikace.
+     */
     public GameWindow(Window window) {
         ITurn stone = new Stone();
         turns[0] = stone;
@@ -82,6 +102,15 @@ public class GameWindow extends JPanel implements Connection.IListenerInGame {
         addButton(gridBorders, 2, 2, mandom, window);
     }
 
+    /****
+     * pridava tlacitko pro dany tah do herniho okna.
+     *
+     * @param grid Nastaveni umisteni tlacitka.
+     * @param x Pozice v radku.
+     * @param y Pozice ve sloupci.
+     * @param turn Tah odpovidajici tlacitku.
+     * @param window Hlavni okno aplikace.
+     */
     private void addButton(GridBagConstraints grid, int x, int y, ITurn turn, Window window) {
         // První řádek tlačítek (gridx = 0, 1, 2 pro tři sloupce)
         JButton button = new JButton(turn.getNameOfTurn());
@@ -127,6 +156,9 @@ public class GameWindow extends JPanel implements Connection.IListenerInGame {
         this.pocetOdehranychKol = this.pocetOdehranychKol + 1;
     }*/
 
+    /****
+     * updatuje popisky herniho okna s aktualnim stavem hry.
+     */
     public static void updateLabes() {
         System.out.println("v akturalizaci labelu");
         roundLabel.setText("Kolo číslo: " + GameState.getInstance().numberOfPlayedRounds);
@@ -137,6 +169,12 @@ public class GameWindow extends JPanel implements Connection.IListenerInGame {
                 + "<br>" + "Remíz:" + GameState.getInstance().numberOfSM + "</html>");
     }
 
+    /**
+     * zpracovava prijatou zpravu od serveru a meni stav hry podle obsahu zpravy
+     *
+     *
+     * @param message Prijata zprava od serveru.
+     */
     @Override
     public void onMessage(String message) {
         if (message.startsWith("Mess:turn:")) {

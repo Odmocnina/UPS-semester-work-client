@@ -1,5 +1,6 @@
 package upsSP.Server;
 
+import upsSP.GUI.GameEvaluationScreen;
 import upsSP.GUI.Informator;
 import upsSP.Nastroje.Constants;
 import upsSP.Nastroje.GameState;
@@ -13,39 +14,73 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import static java.lang.Thread.sleep;
 
+/************************************************************
+ * jedninacek zajistujici komunikaci se serverem, take kontroluje jestli je pripojeni OK
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class Connection {
+    /** port, na kterem server nasloucha **/
     private int port;
+    /** adresa serveru **/
     String adress;
+    /** instance singletonu connection **/
     private static Connection instance;
+    /** socket pro komunikaci **/
     private Socket socket;
+    /** vystupni stream **/
     private PrintWriter out;
+    /** vstupni stream **/
     private BufferedReader in;
+    /** indikator, zda posloucham **/
     private boolean isLisening = false; //posloucham
+    /** indikator, zda posilam **/
     private boolean isSending = false;  //posilam
+    /** vlakno pro poslouchani **/
     private Thread lisenThread, pingThread;
-
+    /** id klienta **/
     public int clientId;
+    /** listener pro zpravy v queue **/
     private IListenerInQueue lisenerInQueue;
-
+    /** listener pro zpravy ve hre **/
     private IListenerInGame listenerInGame;
-
+    /** listener pro zpravy po tahu **/
     private IListenerAfterTurn listenerAfterTurn;
-
+    /** listener pro zpravy v hodnoceni **/
     private IListenerInJudgement listenerInJudgement;
+    /** listener pro zpravy po loginu **/
     private IListenerAfterLogin listenerAfterLogin;
+    /** cas posledniho ping **/
     private long time;
+    /** indikator, zda je spojeni navazano **/
     boolean connected = false;
+    /** pocet pingu **/
     int numberOfPings = 0;
+    /** pocet pongu **/
     int numberOfPongs = 0;
+    /** zamek pro pristup k promennym **/
     Lock lock = new ReentrantLock();
+    /** indikator, zda hra bezi **/
     boolean gameStopped = false;
+    /** pole pro indikaci, zda byla zprava odeslana **/
     public boolean[] repeteMessagesSend = {false, false, false, false, false};
 
-    // Soukromý konstruktor
+    /****
+     * soukromy konstruktor pro singletonovou implementaci.
+     *
+     */
     private Connection() {
     }
 
-    // Metoda pro získání instance Singletonu
+    /****
+     * metoda pro ziskani instance Singletonu
+     *
+     *
+     * @return instance singletonu Connection.
+     */
     public static Connection getInstance() throws IOException {
         if (instance == null) {
             instance = new Connection();
@@ -53,7 +88,13 @@ public class Connection {
         return instance;
     }
 
-    // Metoda pro odeslání zprávy serveru a přečtení odpovědi
+    /****
+     * metoda pro odeslani zpravy serveru a precteni odpovedi
+     *
+     *
+     * @param message zprava, ktera ma byt odeslana
+     * @return vraci odpoved serveru
+     */
     public String sendMessage(String message) throws IOException {
         out.println(message); //tedka jsem to zmenil z println na print nebo z posilani s lomeno n a bez, tedka bez \n
         out.flush();
@@ -61,11 +102,20 @@ public class Connection {
         return null;
     }
 
+    /****
+     * metoda pro prijeti zpravy od serveru
+     *
+     *
+     * @return vraci prijatou zpravu
+     */
     public String acceptMessage() throws IOException {
         return in.readLine();
     }
 
-    // Metoda pro uzavření spojení
+    /****
+     * metoda pro uzavreni spojeni
+     *
+     */
     public void closeConnection() {
         try {
             stopLisening();
@@ -86,6 +136,10 @@ public class Connection {
         }
     }
 
+    /****
+     * metoda pro uzavreni spojeni
+     *
+     */
     public void closeConnectionForTry() {
         try {
             if (socket != null) {
@@ -103,18 +157,40 @@ public class Connection {
         }
     }
 
+    /****
+     * metoda pro nastaveni portu
+     *
+     *
+     * @param port cislo portu
+     */
     private void setPort(int port) {
         this.port = port;
     }
 
+    /****
+     * metoda pro nastaveni adresy
+     *
+     *
+     * @param adress adresa serveru
+     */
     private void setAdress(String adress) {
         this.adress = adress;
     }
 
+    /****
+     * metoda pro ziskani casu pro socket
+     *
+     *
+     * @return cas pro socket
+     */
     public int getTimeForSocket() {
         return Constants.NUMBER_OF_PINGS * Constants.TIME_FOR_ONE_PING * 2;
     }
 
+    /****
+     * metoda pro pokus o pripojeni
+     *
+     */
     public void tryToConnect() throws IOException {
         this.socket = new Socket(adress, port);
         //socket.setSoTimeout(getTimeForSocket());
@@ -123,6 +199,13 @@ public class Connection {
         setIsConnected(true);
     }
 
+    /****
+     * metoda pro nastaveni konfigurace
+     *
+     * @param port cislo portu
+     * @param adress adresa serveru
+     * @param startPinging indikator, zda zacit posilat ping
+     */
     public void setConfiguration(int port, String adress, boolean startPinging) throws IOException {
         setPort(port);
         setAdress(adress);
@@ -131,6 +214,10 @@ public class Connection {
         sendingPingToServer();
     }
 
+    /****
+     * metoda pro prijimani zprav od serveru, nasledne zpracovani a posilani odpovedi
+     *
+     */
     private void liseningMessegesFromServer() {
         isLisening = true;
         System.out.println("Zapinam posluchadlo");
@@ -143,7 +230,8 @@ public class Connection {
                     if (message == null) {
                         continue;
                     }
-                    if (!message.startsWith("Mess:")) {
+                    message = message.trim();
+                    if (!message.startsWith("Mess:")) {  //nevalidni zprv
                         System.out.println("Nevlaidni zprva prijata, odpojuji");
                         GameState.getInstance().setScores(0,0, 0);
                         Informator.getInstance(null).informAboutInvalidMessage();
@@ -153,6 +241,10 @@ public class Connection {
                     System.out.println("Prijata zprava: " + message);
                     //setTime(System.currentTimeMillis());
                     if (message.startsWith("Mess:reconnect:OK:")) {
+                        if (!message.equals("Mess:reconnect:OK:")) {
+                            processComplicatedReconnect(message);
+                            GameEvaluationScreen.aktualizujLably();
+                        }
                         Informator.getInstance(null).repairGame();
                         sendNotSendedMessagess();
                     }
@@ -181,6 +273,7 @@ public class Connection {
                         Informator.getInstance(null).informToShow();
                         GameState.getInstance().setScores(0,0, 0);
                         GameState.getInstance().setState(States.LOGIN);
+                        pingThread = null;
                     }
                     if (listenerAfterLogin != null && message != null) {
                         listenerAfterLogin.onMessage(message);
@@ -205,6 +298,10 @@ public class Connection {
         lisenThread.start();
     }
 
+    /****
+     * metoda pro posilani ping zprav na server
+     *
+     */
     public void sendingPingToServer() {
         isSending = true;
         if (pingThread == null) {  //at se nezacne dalsi ping thread pri reconnectu
@@ -249,6 +346,12 @@ public class Connection {
         }
     }
 
+    /****
+     * metoda pro znovupripojeni, pokud dojde k problemu se spojenim
+     *
+     *
+     * @return vraci true, pokud se pripojeni podarilo
+     */
     boolean reconnect() {
         int attempts = 0;
         boolean navrat = false;
@@ -283,37 +386,61 @@ public class Connection {
         return navrat;
     }
 
+    /****
+     * metoda pro posilani zpravy pong
+     *
+     */
     private void pong() throws IOException {
         Connection.getInstance().sendMessage("Mess:pong:\n");
     }
 
+    /****
+     * metoda pro zastaveni poslouchani
+     *
+     */
     private void stopLisening() {
         setIsLisening(false);
         //sleep();
     }
 
+
+    /****
+     * Nastavi hodnotu isLisening na true.
+     *
+     */
     public void setLiseningToTrue() {
         setIsLisening(true);
     }
+    /****
+     * Zastavi proces pingovani nastavenim isSending na false.
+     *
+     */
     private void  stopPinging() {
         isSending = false;
     }
+
+
+    /**rozhrani pro poslochace v fronte**/
     public interface IListenerInQueue {
         void onMessage(String message);
     }
 
+    /**rozhrani pro poslochace v hre**/
     public interface IListenerInGame {
         void onMessage(String message);
     }
 
+    /**rozhrani pro poslochace po tahu**/
     public interface IListenerAfterTurn {
         void onMessage(String message);
     }
 
+    /**rozhrani pro poslochace v hodnoceni hry**/
     public interface IListenerInJudgement {
         void onMessage(String message);
     }
 
+    /**rozhrani pro poslochace po loginu**/
     public interface IListenerAfterLogin {
         void onMessage(String message);
     }
@@ -322,27 +449,64 @@ public class Connection {
 //
 //    }
 
+    /****
+     * Nastavi posluchace pro stav ve fronte
+     *
+     *
+     * @param listenerInQueue posluchac pro zpravy ve fronte
+     */
     public void addListnerInQueue(IListenerInQueue listenerInQueue) {
         this.lisenerInQueue = listenerInQueue;
     }
 
+    /****
+     * Nastavi posluchace pro stav ve hre
+     *
+     *
+     * @param listenerInGame posluchac pro zpravy ve fronte
+     */
     public void addListnerInGame(IListenerInGame listenerInGame) {
         this.listenerInGame = listenerInGame;
     }
 
+
+
+    /****
+     * Nastavi posluchace pro stav po tahu
+     *
+     *
+     * @param listenerAfterTurn posluchac pro zpravy po tahu
+     */
     public void addListnerAfterTurn(IListenerAfterTurn listenerAfterTurn) {
         this.listenerAfterTurn = listenerAfterTurn;
     }
 
+    /****
+     * Nastavi posluchace pro stav po loginu
+     *
+     *
+     * @param listenerAfterLogin posluchac pro zpravy po tahu
+     */
     public void addListnerAfterLogin(IListenerAfterLogin listenerAfterLogin) {
         this.listenerAfterLogin = listenerAfterLogin;
     }
 
+    /****
+     * Nastavi posluchace pro stav po vzhdonoceni hrz
+     *
+     *
+     * @param listenerInJudgement posluchac pro zpravy po tahu
+     */
     public void addListnerInJudgement(IListenerInJudgement listenerInJudgement) {
         this.listenerInJudgement = listenerInJudgement;
     }
 
-    // Getter a setter pro time
+    /****
+     * Vraci hodnotu casove promenne
+     *
+     *
+     * @return dlouhe cislo reprezentujici cas
+     */
     public long getTime() {
         lock.lock();
         try {
@@ -352,6 +516,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Nastavi hodnotu casove promenne
+     *
+     *
+     * @param time dlouhe cislo reprezentujici novy cas
+     */
     public void setTime(long time) {
         lock.lock();
         try {
@@ -361,7 +531,12 @@ public class Connection {
         }
     }
 
-    // Getter a setter pro connected
+    /****
+     * Vraci stav pripojeni
+     *
+     *
+     * @return logicka hodnota reprezentujici stav pripojeni
+     */
     public boolean isConnected() {
         lock.lock();
         try {
@@ -371,6 +546,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Nastavi stav pripojeni
+     *
+     *
+     * @param connected logicka hodnota reprezentujici novy stav pripojeni
+     */
     public void setIsConnected(boolean connected) {
         lock.lock();
         try {
@@ -380,7 +561,12 @@ public class Connection {
         }
     }
 
-    // Getter pro numberOfPings
+    /****
+     * ziska pocet poslanzch ping zprav
+     *
+     *
+     * @return pocet poslanzch ping zprav
+     */
     public int getNumberOfPings() {
         lock.lock();
         try {
@@ -390,7 +576,12 @@ public class Connection {
         }
     }
 
-    // Inkrementace numberOfPings o parametr
+    /****
+     * nastavi pocet poslanzch ping zprav
+     *
+     *
+     * @param numberOfPings na kolik chceme nastavit pocet poslanzch ping zprav
+     */
     public void setNumberOfPings(int numberOfPings) {
         lock.lock();
         try {
@@ -400,7 +591,12 @@ public class Connection {
         }
     }
 
-    // Getter pro numberOfPongs
+    /****
+     * ziska pocet prijatzch pong zprav
+     *
+     *
+     * @return pocet prijatzch pong zprav
+     */
     public int getNumberOfPongs() {
         lock.lock();
         try {
@@ -410,7 +606,12 @@ public class Connection {
         }
     }
 
-    // Inkrementace numberOfPongs o parametr
+    /****
+     * nastavi pocet prijatzch pong zprav
+     *
+     *
+     * @param numberOfPongs na kolik chceme nastavit pocet prijatzch pong zprav
+     */
     public void setNumberOfPongs(int numberOfPongs) {
         lock.lock();
         try {
@@ -420,6 +621,12 @@ public class Connection {
         }
     }
 
+    /****
+     * funkce, ktera zjisti jestli klient posloucha
+     *
+     *
+     * @return boolean hodnota vzjadrici jestli klient poslouch
+     **/
     public boolean getIsLisening() {
         lock.lock();
         try {
@@ -429,14 +636,28 @@ public class Connection {
         }
     }
 
+    /****
+     * Nastavuje priznak pro odeslani zpravy o tahu
+     *
+     */
     public void turnSend() {
         repeteMessagesSend[0] = true;
     }
 
+    /****
+     * Nastavuje priznak pro odeslani zpravy o dalsim kole
+     *
+     */
     public void nextRoundSend() {
         repeteMessagesSend[0] = true;
     }
 
+    /****
+     * Nastavuje, zda server nasloucha prichozim zpravam
+     *
+     *
+     * @param isLisening Priznak, zda ma server naslouchat
+     */
     public void setIsLisening(boolean isLisening) {
         lock.lock();
         try {
@@ -446,12 +667,21 @@ public class Connection {
         }
     }
 
+    /****
+     * Resetuje parametry pripojeni, vcetne poctu pingu, pongu a stavu pripojeni
+     *
+     */
     public void resetConnectionParametres() {
         setNumberOfPings(0);
         setNumberOfPongs(0);
         setIsConnected(false);
     }
 
+    /****
+     * Nastavuje, zda byla odeslana prihlasovaci zprava
+     *
+     * @param turnSend Priznak odeslani
+     */
     public void setLoginSend(boolean turnSend) {
         lock.lock();
         try {
@@ -461,6 +691,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Vraci, zda byla prihlasovaci zprava odesln
+     *
+     *
+     * @return Priznak odeslani prihlasovaci zpravy
+     */
     public boolean getLoginSend() {
         lock.lock();
         try {
@@ -470,6 +706,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Nastavuje, zda byla odeslana zprava o tahu
+     *
+     *
+     * @param turnSend Priznak odeslani
+     */
     public void setLogoutSend(boolean turnSend) {
         lock.lock();
         try {
@@ -479,6 +721,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Vraci, zda byla zprava o tahu odesln
+     *
+     *
+     * @return Priznak odeslani zpravy o tahu
+     */
     public boolean getLogoutSend() {
         lock.lock();
         try {
@@ -488,6 +736,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Nastavuje, zda byla odeslana zprava o tahu
+     *
+     *
+     * @param turnSend Priznak odeslani
+     */
     public void setTurnSend(boolean turnSend) {
         lock.lock();
         try {
@@ -497,6 +751,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Vraci, zda byla zprava o tahu odesln
+     *
+     *
+     * @return Priznak odeslani zpravy o tahu
+     */
     public boolean getTurnSend() {
         lock.lock();
         try {
@@ -506,6 +766,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Nastavuje, zda byla odeslana zprava o dalsim kole
+     *
+     *
+     * @param turnSend Priznak odeslani
+     */
     public void setNextRoundSend(boolean turnSend) {
         lock.lock();
         try {
@@ -515,6 +781,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Vraci, zda byla zprava o dalsim kole odesln
+     *
+     *
+     * @return Priznak odeslani zpravy o dalsim kole
+     */
     public boolean getNextRoundSend() {
         lock.lock();
         try {
@@ -524,6 +796,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Nastavuje, zda byla odeslana zprava o hre
+     *
+     *
+     * @param turnSend Priznak odeslani
+     */
     public void setGameSend(boolean turnSend) {
         lock.lock();
         try {
@@ -533,6 +811,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Vraci, zda byla zprava o hre odesln
+     *
+     *
+     * @return Priznak odeslani zpravy o hre
+     */
     public boolean getGameSend() {
         lock.lock();
         try {
@@ -542,6 +826,12 @@ public class Connection {
         }
     }
 
+    /****
+     * Odesila zpravy, ktere nebyly dosud odesln
+     *
+     *
+     * @throws IOException Pokud nastane chyba pri odesilani
+     */
     public void sendNotSendedMessagess() throws IOException {
         if (getLoginSend()) {
             sendMessage("Mess:login:" + GameState.getInstance().turnValue + ":");
@@ -565,6 +855,13 @@ public class Connection {
         }
     }
 
+
+    /****
+     * Zpracovava zpravy typu OK a nastavi odpovidajici priznak pro odesln
+     *
+     *
+     * @param message Zprava, kterou je nutno zpracovat
+     */
     public void processOKMessage(String message) {
         if (message.startsWith("Mess:login:")) {
             setLoginSend(false);
@@ -578,5 +875,39 @@ public class Connection {
             setGameSend(false);
         }
     }
+
+    /****
+     * Zpracovava slozite obnoveni spojeni na zaklade prijate zprv
+     *
+     *
+     * @param message Zprava, kterou je nutno zpracovat pro obnoveni spojeni
+     */
+    public void processComplicatedReconnect(String message) {
+        String[] parts = message.split(":");
+        try {
+            if (parts[3].equals("n") && GameState.getInstance().stateOfGame == States.QUEUE) {
+                GameState.getInstance().setState(States.GAME);
+            } else if (parts[3].equals("w") && GameState.getInstance().stateOfGame == States.AFTERTURN) {
+                GameState.getInstance().addWin();
+                GameState.getInstance().setState(States.GAMEJUDGEMENT);
+                GameEvaluationScreen.setOpponentTurn(Integer.parseInt(parts[4]));
+                GameEvaluationScreen.setRoundResultLabel("Výhra");
+            } else if (parts[3].equals("l") && GameState.getInstance().stateOfGame == States.AFTERTURN) {
+                GameState.getInstance().addLoss();
+                GameState.getInstance().setState(States.GAMEJUDGEMENT);
+                GameEvaluationScreen.setOpponentTurn(Integer.parseInt(parts[4]));
+                GameEvaluationScreen.setRoundResultLabel("Prohra");
+            } else if (parts[3].equals("s") && GameState.getInstance().stateOfGame == States.AFTERTURN) {
+                GameState.getInstance().addStaleMate();
+                GameState.getInstance().setState(States.GAMEJUDGEMENT);
+                GameEvaluationScreen.setOpponentTurn(Integer.parseInt(parts[4]));
+                GameEvaluationScreen.setRoundResultLabel("Remíza");
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Na miste cisla jinaci znaky");
+        }
+    }
+
+
 
 }

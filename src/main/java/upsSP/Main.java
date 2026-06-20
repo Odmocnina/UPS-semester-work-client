@@ -5,29 +5,22 @@ import javax.swing.*;
 import upsSP.GUI.Window;
 import upsSP.Server.Connection;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+/************************************************************
+ * Trid s main funkci progrmu
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
 public class Main {
 
+    /****
+     * funkce programu, kter je min, spusti cely progrm
+     *
+     *
+     * @param args argumenty prikazove radky, nepouzito
+     */
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        // Získání instance klienta
-//        try {
-//            Connection client = Connection.getInstance();
-//
-//            // Odeslání zprávy na server a přečtení odpovědi
-//            String response = client.sendMessage("Mess:Nazdar nezajdem na jedno?!");
-//            System.out.println("Odpověď od serveru: " + response);
-//            SwingUtilities.invokeLater(() -> {
-//                Window window = new Window();
-//
-//                window.setVisible(true);
-//            });
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//        }
-
         SwingUtilities.invokeLater(() -> {
             Window window = new Window();
 

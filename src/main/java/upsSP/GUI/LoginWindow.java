@@ -13,8 +13,22 @@ import java.io.IOException;
 
 import static java.lang.Thread.sleep;
 
+/************************************************************
+ * Instance tridy LoginWindow predstavuje panel, ktery se zobzi, kdyz se hrac ma prihlsit
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class LoginWindow extends JPanel {
 
+    /****
+     * konstruktor vytvari prihlasovaci panel, nastavuje layout a pridava vstupni pole a tlacitka.
+     *
+     *
+     * @param window hlavni okno aplikace.
+     */
     public LoginWindow(Window window) {
         GridBagLayout mriz = new GridBagLayout();
         setLayout(mriz);
@@ -42,7 +56,7 @@ public class LoginWindow extends JPanel {
         gridBorders.gridy = 1;
         add(ipLabel, gridBorders);
 
-        JTextField ipTextField = new JTextField("147.228.67.105", 15);
+        JTextField ipTextField = new JTextField("localhost", 15);
         gridBorders.gridx = 1;
         gridBorders.gridy = 1;
         add(ipTextField, gridBorders);
@@ -80,6 +94,9 @@ public class LoginWindow extends JPanel {
                     } else if (jmenoTextField.getText().contains(":")) {
                         JOptionPane.showMessageDialog(null, "Nepovolené znaky v jmeně!",
                                 "Chyba", JOptionPane.ERROR_MESSAGE);
+                    } else if (!isPortWithinBounds(Integer.parseInt(portTextField.getText()))) {
+                        JOptionPane.showMessageDialog(null, "Port není v rozsahu (0 - 65535)!",
+                                "Chyba", JOptionPane.ERROR_MESSAGE);
                     } else {
                         // Získání rodičovského okna
                         java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(LoginWindow.this);
@@ -115,6 +132,8 @@ public class LoginWindow extends JPanel {
                                             "Chyba připojení", JOptionPane.ERROR_MESSAGE);
                                     connected = false;
                                     window.zobrazHru("login");
+                                } catch (NumberFormatException e) {
+                                    System.out.println("Na miste cisla jinaci znaky");
                                 }
                                 return null;
                             }
@@ -145,6 +164,23 @@ public class LoginWindow extends JPanel {
         add(Box.createHorizontalStrut(1), gridBorders);
     }
 
+    /****
+     * kontroluje, zda je port v platnem rozsahu (0 - 65535).
+     *
+     *
+     * @param port cislo portu ke kontrole.
+     * @return true pokud je port v rozsahu, jinak false.
+     */
+    boolean isPortWithinBounds(int port) {
+        return port >= 0 && port <= 65535;
+    }
+
+    /****
+     * metoda pro vykreslovani pozadi panelu.
+     *
+     *
+     * @param g graficky objekt pro vykresleni.
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);

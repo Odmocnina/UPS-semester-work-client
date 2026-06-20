@@ -1,11 +1,27 @@
 package upsSP.GUI;
 
-import upsSP.Nastroje.Constants;
-
 import javax.swing.*;
 import java.awt.*;
 
+import upsSP.Nastroje.Constants;
+
+/************************************************************
+ * Instance tridy FuckedConnectionOpponentScreen predstavuje panel, ktery se zobrzi, kdyz se oppoentovi hrce pokzi
+ * spojeni
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class FuckedConnectionOpponentScreen extends JPanel {
+
+    /****
+     * Konstruktor vytvari panel FuckedConnectionOpponentScreen, nastavuje jeho rozlozeni a obsah.
+     *
+     *
+     * @param window Hlavni okno aplikace.
+     */
     public FuckedConnectionOpponentScreen(Window window) {
         GridBagLayout grid = new GridBagLayout();
         setLayout(grid);

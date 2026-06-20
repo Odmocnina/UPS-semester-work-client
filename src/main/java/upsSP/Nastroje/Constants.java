@@ -2,6 +2,14 @@ package upsSP.Nastroje;
 
 import java.awt.*;
 
+/************************************************************
+ * staticka trid s podstatnymi konstntmi pozivanych v programu
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class Constants {
     public static final int WIDTH_STOCK = 800;
     public static final int HEIGHT_STOCK = 600;

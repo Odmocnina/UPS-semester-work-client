@@ -7,8 +7,22 @@ import javax.swing.*;
 import java.awt.*;
 import java.io.IOException;
 
+/************************************************************
+ * Instance tridy InBetweenWindow predstavuje panel, ktery se zobrzi kryz hrac cek az opponent take zvoli tah/bude
+ * pripraven
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class InBetweenWindow extends JPanel implements Connection.IListenerAfterLogin {
 
+    /**
+     * konstruktor vytvari panel InBetweenWindow, nastavuje jeho layout a zobrazuje cekaci zpravu.
+     *
+     * @param window hlavni okno aplikace.
+     */
     public InBetweenWindow(Window window) {
         GridBagLayout grid = new GridBagLayout();
         setLayout(grid);
@@ -42,6 +56,11 @@ public class InBetweenWindow extends JPanel implements Connection.IListenerAfter
 
     }
 
+    /**
+     * zpracovava prijate zpravy po prihlaseni a provadi odpovidajici akce na zaklade zpravy.
+     *
+     * @param message prijata zprava od serveru.
+     */
     @Override
     public void onMessage(String message) {
         if (message.startsWith("Mess:login:")) {
@@ -61,7 +80,10 @@ public class InBetweenWindow extends JPanel implements Connection.IListenerAfter
                 }
             } catch (IOException e) {
                 throw new RuntimeException(e);
+            } catch (NumberFormatException e) {
+                System.out.println("Na miste cisla jinaci znaky");
             }
         }
+
     }
 }

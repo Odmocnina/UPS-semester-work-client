@@ -10,16 +10,41 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 
+/************************************************************
+ * Instance tridy GameEvaluationScreen predstavuje panel, ktery se zobrzi na vyhdonoceni deni hry
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class GameEvaluationScreen extends JPanel implements Connection.IListenerInJudgement {
 
-    static JLabel turnLabel, opponentTurnLabel, resultRoundLabel, gameResultLabel;
-    static int opponentTurnValue = -1;
-    static String roundResult = "";
+    /**Popisek pro zobrazeni vlastniho tahu.**/
+    static JLabel turnLabel;
+    /**Popisek pro zobrazeni tahu protivnika.**/
+    static JLabel opponentTurnLabel;
+    /**Popisek pro zobrazeni vysledku kola.**/
+    static JLabel resultRoundLabel;
+    /**Popisek pro zobrazeni vysledku hry.**/
+    static JLabel gameResultLabel;
 
+    /**Hodnota tahu protivnika.**/
+    static int opponentTurnValue = -1;
+    /**Textovy retezec obsahujici vysledek kola.**/
+    static String roundResult = "";
+    /**Hodnota vlastniho tahu.**/
     static int valueTurn = -1;
 
+    /**Tlacitko pro zahajeni dalsiho kola nebo navrat do fronty.**/
     static JButton nextRoundButton;
 
+    /****
+     * Konstruktor vytvari panel GameEvaluationScreen, nastavuje jeho rozlozeni a pridava komponenty pro zobrazeni stavu hry.
+     *
+     *
+     * @param window Hlavni okno aplikace.
+     */
     public GameEvaluationScreen(Window window) {
         GridBagLayout mriz = new GridBagLayout();
         setLayout(mriz);
@@ -66,7 +91,7 @@ public class GameEvaluationScreen extends JPanel implements Connection.IListener
             public void actionPerformed(ActionEvent e) {
                 window.aktializujLably();
                 if (GameState.getInstance().gameInProgress) {
-                    window.zobrazHru("game");
+                    window.zobrazHru("afterPlay");
                     try {
                         Connection.getInstance().sendMessage("Mess:readyForNextRound:" + Connection.getInstance().clientId + ":");
                         Connection.getInstance().setNextRoundSend(true);
@@ -87,6 +112,12 @@ public class GameEvaluationScreen extends JPanel implements Connection.IListener
         });
     }
 
+    /****
+     * Vraci nazev odpovidajici hodnote tahu.
+     *
+     * @param hodnota Hodnota tahu.
+     * @return Nazev tahu.
+     */
     public static String ziskejNazevZHodnoty(int hodnota) {
         switch (hodnota) {
             case Constants.STONE_VALUE:
@@ -104,6 +135,11 @@ public class GameEvaluationScreen extends JPanel implements Connection.IListener
         }
     }
 
+    /**
+     * na updatovani labelu na novou hodnotu
+     *
+     *
+     **/
     public static void aktualizujLably() {
         //if (opponentTurnLabel != null) {
         turnLabel.setText("Zvolil jste: " + ziskejNazevZHodnoty(valueTurn));
@@ -126,28 +162,69 @@ public class GameEvaluationScreen extends JPanel implements Connection.IListener
         //}
     }
 
+    /****
+     * Nastavuje stav hry na zaklade prijate zpravy.
+     *
+     *
+     * @param message Zprava od serveru s informacemi o stavu hry.
+     */
     public static void setGameState(String message) {
         String[] messageFragments = message.split(":");
-        opponentTurnValue = Integer.parseInt(messageFragments[3]);
-        if (messageFragments[2].equals("w")) {
-            roundResult = "Výhra";
-        } else if (messageFragments[2].equals("l")) {
-            roundResult = "Prohra";
-        } else if (messageFragments[2].equals("s")) {
-            roundResult = "Remíza";
-        } else {
-            roundResult = "Chyba";
+        try {
+            opponentTurnValue = Integer.parseInt(messageFragments[3]);
+            if (messageFragments[2].equals("w")) {
+                roundResult = "Výhra";
+            } else if (messageFragments[2].equals("l")) {
+                roundResult = "Prohra";
+            } else if (messageFragments[2].equals("s")) {
+                roundResult = "Remíza";
+            } else {
+                roundResult = "Chyba";
+            }
+            //System.out.println("parametry: " + parametry[4] + " " + parametry[5]);
+            GameState.getInstance().setScores(Integer.parseInt(messageFragments[4]), Integer.parseInt(messageFragments[5]), Integer.parseInt(messageFragments[6]));
+        } catch (NumberFormatException e) {
+            System.out.println("Na miste cisla jinaci znaky");
         }
-        //System.out.println("parametry: " + parametry[4] + " " + parametry[5]);
-        GameState.getInstance().setScores(Integer.parseInt(messageFragments[4]), Integer.parseInt(messageFragments[5]), Integer.parseInt(messageFragments[6]));
-
     }
 
+    /****
+     * Nastavuje vysledek kola.
+     *
+     *
+     * @param result Vysledek kola.
+     */
+    public static void setRoundResultLabel(String result) {
+        roundResult = result;
+    }
+
+    /****
+     * Nastavuje tah protivnika.
+     *
+     *
+     * @param turn Tah protivnika.
+     */
+    public static void setOpponentTurn(int turn) {
+        opponentTurnValue = turn;
+    }
+
+    /****
+     * Metoda pro vykreslovani komponenty panelu.
+     *
+     *
+     * @param g Graficky objekt pro vykresleni.
+     */
     @Override
     protected void paintComponent(Graphics g) {
         super.paintComponent(g);
     }
 
+    /****
+     * Metoda pro zpracovani zprav prijatych od serveru.
+     *
+     *
+     * @param message Prijata zprava od serveru.
+     */
     @Override
     public void onMessage(String message) {
 

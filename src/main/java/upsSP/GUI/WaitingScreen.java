@@ -11,7 +11,22 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
 
+/************************************************************
+ * Instance tridy WaitingWindow predstavuje panel, ktery se zobzi, kdyz hrac ceka v fronte
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class WaitingScreen extends JPanel implements Connection.IListenerInQueue {
+
+    /****
+     * konstruktor vytvari panel WaitingScreen, nastavuje jeho layout a zobrazuje cekaci zpravu a tlacitko pro navrat na login.
+     *
+     *
+     * @param window hlavni okno aplikace.
+     */
     public WaitingScreen(Window window) {
         GridBagLayout mriz = new GridBagLayout();
         setLayout(mriz);
@@ -71,6 +86,12 @@ public class WaitingScreen extends JPanel implements Connection.IListenerInQueue
         });
     }
 
+    /****
+     * zpracovava zpravy prijate od serveru a aktualizuje stav aplikace podle jejich obsahu.
+     *
+     *
+     * @param message prijata zprava od serveru.
+     */
     @Override
     public void onMessage(String message) {
         if (message.startsWith("Mess:gameBegin:")) {
@@ -82,9 +103,14 @@ public class WaitingScreen extends JPanel implements Connection.IListenerInQueue
         if (message.startsWith("Mess:login:")) {
             String id = message.split(":")[2];
             try {
-                Connection.getInstance().clientId = Integer.parseInt(id);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+                int idInt = Integer.parseInt(id);
+                try {
+                    Connection.getInstance().clientId = idInt;
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("Na miste cisla jinaci znaky");
             }
         }
         if (message.startsWith("Mess:logout:")) {

@@ -1,11 +1,26 @@
 package upsSP.GUI;
 
-import upsSP.Nastroje.Constants;
-
 import javax.swing.*;
 import java.awt.*;
 
+import upsSP.Nastroje.Constants;
+
+/************************************************************
+ * Instance tridy FuckedConnection predstavuje panel, ktery se zobrzi, kdyz se mu pokzi spojeni
+ *
+ *
+ * @author  Michael Hladky
+ * @version 1.0.0
+ */
+
 public class FuckedConnectionWindow extends JPanel {
+
+    /****
+     * Konstruktor vytvari panel FuckedConnectionWindow, nastavuje jeho rozlozeni a obsah.
+     *
+     *
+     * @param window Hlavni okno aplikace.
+     */
     public FuckedConnectionWindow(Window window) {
         GridBagLayout grid = new GridBagLayout();
         setLayout(grid);
